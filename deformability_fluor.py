@@ -26,7 +26,7 @@ Input parameters:
 --labelimg: Boolean variable (True or False) indicating if you'd like labeled image data
 
 Output files
---If labelimg is true, each original image with each detected cell labeled with an index
+--If labelimg is true, each video frame with each detected cell labeled with an index
 
 --A corresponding .xlsx sheet containing:
 ----sDI, area, summed cell fluorescence intensity
