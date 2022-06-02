@@ -26,7 +26,7 @@ Input parameters:
 --labelimg: Boolean variable (True or False) indicating if you'd like labeled image data
 
 Output files
---If labelimg is true, each original image with each detected cell labeled with an index
+--If labelimg is true, each original frame of the provided video with each detected cell labeled with an index
 
 --A corresponding .xlsx sheet containing:
 ----sDI, area, summed cell fluorescence intensity
@@ -300,11 +300,11 @@ for video in video_list:
 
             # Add descriptive statistics for image to summary sheet
             df_image = descriptive_statistics(df_video)
-            df_image.insert(0, 'Image', filename)
+            df_image.insert(0, 'Video', filename)
             df_summary = df_summary.append(df_image, ignore_index=True)
 
             # Add individual image dataframe to df_all
-            df_video.insert(0, 'Image', filename)
+            df_video.insert(0, 'Video', filename)
             df_all = df_all.append(df_video, ignore_index=True)
 
             # Pairplot
@@ -348,13 +348,13 @@ os.chdir(output_folder)  # Return to original analysis folder
 # Save and create summary excel sheets and pairplots
 # Create pairplots (with and without functional stain intensity data)
 # One color
-df_all_subset = df_all[['Image', 'sDI (\u03bcm/s)', 'Area (pix)', 'Fl. int. (a.u.)']]
+df_all_subset = df_all[['Video', 'sDI (\u03bcm/s)', 'Area (pix)', 'Fl. int. (a.u.)']]
 sns.pairplot(df_all_subset)
 plt.savefig(dir_name + '_pairplot.png', dpi=300)
 plt.clf()
 
 # One color per image
-sns.pairplot(df_all_subset, hue='Image')
+sns.pairplot(df_all_subset, hue='Video')
 plt.savefig(dir_name + '_multicolor_pairplot.png', dpi=300)
 plt.clf()
 
@@ -363,7 +363,7 @@ df_all.to_excel(writer, sheet_name='All data points', index=False)# All data poi
 
 # Update summary sheet with summary of all images
 dict_df_final = descriptive_statistics(df_all)
-dict_df_final.insert(0, 'Image', 'All images')
+dict_df_final.insert(0, 'Video', 'All images')
 df_summary = df_summary.append(dict_df_final, ignore_index=True)
 df_summary.to_excel(writer, sheet_name='Descriptive statistics', index=False)
 
