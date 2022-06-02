@@ -8,6 +8,7 @@ Each script has information about inputs, parameters, and outputs and a "tips" s
 ## Scripts included in repository
 - adhesion_brightfield.py: calculate morphological metrics describing individual cells within brightfield microscopy images
 - adhesion_fluor.py: calculate morphological and functional metrics describing individual cells within fluoresence microscopy images
+- adhesion_video.py: calculate morphological metrics and transit time values describing individual cells as they transiently adhere to some surface while under flow
 - deformability_brightfield.py: calculate measures of mechanical properties of individual cells within brightfield microscopy data taken from experiments performed with the "biophysical flow cytometer" device
 - deformability_fluor.py: calculate measures of mechanical properties of individual cells within fluoresence microscopy data taken from experiments performed with the "biophysical flow cytometer" device
 
