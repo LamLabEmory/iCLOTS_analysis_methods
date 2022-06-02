@@ -28,7 +28,7 @@ invert=True  # True is dark on light, False is light on dark
 
 Outputs typically include:
 - Original image or video data labeled with all detected events (e.g. cell). Each label is an index that corresponds to numerical data within an excel sheet.
-- Excel file with numerical data. This includes: one sheet per file of all events within that file, one sheet with all events from all files, a sheet with descriptive statistics (e.g. min., mean, max., st.dev. for all calculated metrics, and a sheet containing the parameters used and time/date of analysis for reference.
+- Excel file with numerical data. This includes: one sheet per file of all events within that file, one sheet with all events from all files, a sheet with descriptive statistics (e.g. min., mean, max., st.dev. for all calculated metrics), and a sheet containing the parameters used and time/date of analysis for reference.
 - Pairplot graphical data for each file, all files combined, and all files combined with each file a different color.
 - All outputs are stored in an "Analysis" folder created within the original directory.
 
