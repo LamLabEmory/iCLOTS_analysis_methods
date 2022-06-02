@@ -1,8 +1,8 @@
 # iCLOTS_analysis_methods
-Script files containing all iCLOTS analysis methods
-These scripts have been designed specifically for use with iCLOTS software, a Lam lab project available at iCLOTS.org, but you might find it useful to adapt them to your own projects
+Script files containing all iCLOTS analysis methods.
+These scripts have been designed specifically for use with iCLOTS software, a Lam lab project available at iCLOTS.org, but you might find it useful to adapt them to suit the needs of your own projects.
 
-Methods rely on: Pandas, Numpy, OpenCV, skimage, Trackpy, seaborn, and more
+Methods rely on: Pandas, Numpy, OpenCV, skimage, Trackpy, seaborn, and more.
 Each script has information about inputs, parameters, and outputs and a "tips" section within the module docstrings. Briefly, users select a folder of .png, .jpg., .tif, and/or .avi files for analysis. Users edit indicated parameters, some image processing step is applied, metric calculations are made and all output files are returned in a new directory within the original.
 
 ## Scripts included in repository
@@ -13,7 +13,6 @@ Each script has information about inputs, parameters, and outputs and a "tips" s
 
 
 ## Inputs, outputs, methods
-
 Users are guided to choose a directory of .png, .jpg, .tif, and/or .avi files using a file dialog window. File type depends on application. A separate suite of video processing tools in the video_processing repository can help format your data into the correct file type.
 
 Users should edit input parameters based on their own individual needs. All parameter values requiring user editing are directly under import statements. Sample (from adhesion_brightfield.py):
