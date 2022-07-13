@@ -46,6 +46,7 @@ Output files
 ------For all cells - one sheet (this combined sheet is best for analyzing replicates)
 ----Descriptive statistics (min, mean, max, standard deviation for all metrics)
 ------For each image and for all images combined
+------Descriptive statistics sheet also includes a density measurement (n cells/mm^2)
 ----Parameters used and time/date analysis was performed, for reference
 
 --Pairplot
@@ -131,7 +132,7 @@ dirpath = filedialog.askdirectory()
 # Create a directory for saved results including time at which operation was performed
 now = datetime.datetime.now()
 # Create strings to indicate operations performed
-output_folder = dirpath + '/Analysis, ' + now.strftime("%m:%d:%Y, %H.%M.%S")
+output_folder = os.path.join(dirpath, 'Analysis, ' + now.strftime("%m_%d_%Y, %H_%M_%S"))
 os.mkdir(output_folder)
 os.chdir(output_folder)
 
@@ -150,7 +151,7 @@ writer = pd.ExcelWriter(excel_name, engine='openpyxl')
 df_all = pd.DataFrame()  # To combine all data points into one sheet, useful for replicates
 df_summary = pd.DataFrame()  # For descriptive statistics
 
-def descriptive_statistics(df_input):
+def descriptive_statistics(df_input, img_size):
     """Function to calculate descriptive statistics for each population, represented as a dataframe"""
 
     dict = {'n cells': len(df_input),
@@ -178,7 +179,9 @@ def descriptive_statistics(df_input):
                   'Min. fn. stain regions (n)': df_input['Fn. stain regions (n)'].min(),
                   'Mean fn. stain regions (n)': df_input['Fn. stain regions (n)'].mean(),
                   'Max. fn. stain regions (n)': df_input['Fn. stain regions (n)'].max(),
-                  'Stdev, fn. stain regions (n)': df_input['Fn. stain regions (n)'].std()
+                  'Stdev, fn. stain regions (n)': df_input['Fn. stain regions (n)'].std(),
+                  'Field of view (mm\u00b2)': img_size,
+                  'Cell density (n/mm\u00b2)': len(df_input)/img_size
                   }
     dict_df = pd.DataFrame(dict, index=[0])
 
@@ -189,11 +192,14 @@ df_all = pd.DataFrame()
 df_summary = pd.DataFrame()
 
 # For each image
+total_area = 0  # For calculating final density measurement
 for imgname in imglist:
 
     # Read image
     filename = os.path.basename(imgname).split(".")[0]  # Name of individual file
     img = cv2.imread(imgname)  # Image for labeling
+    img_size = img.size / 3 * umpix * umpix / 1E6  # Convert area of image (one layer) to mm2
+    total_area += img_size  # Record total area of all images for final density calculation
 
     # Choose correct colors for analysis based on input parameters
     # Main color selection, typically membrane stain
@@ -338,18 +344,18 @@ for imgname in imglist:
                             'Signal (binary)', 'Fn. stain intensity (a.u.)', 'Fn. stain regions (n)']]
     sns.pairplot(df_subset)
     plt.savefig(filename + '_pairplot.png', dpi=300)
-    plt.clf()
+    plt.close()
 
     df_subset_noint = df[[u'Area (\u03bcm\u00b2)', 'Circularity (a.u.)', 'Texture (a.u.)']]
     sns.pairplot(df_subset_noint)
     plt.savefig(filename + '_pairplot_no-int.png', dpi=300)
-    plt.clf()
+    plt.close()
 
     # Save individual image dataframe to .xlsx file
     df.to_excel(writer, sheet_name=filename[:30], index=False)  # Filename cropped to prevent excel error
 
     # Add descriptive statistics for image to summary sheet
-    df_image = descriptive_statistics(df)
+    df_image = descriptive_statistics(df, img_size)
     df_image.insert(0, 'Image', filename)
     df_summary = df_summary.append(df_image, ignore_index=True)
 
@@ -363,26 +369,26 @@ df_all_subset = df_all[['Image', u'Area (\u03bcm\u00b2)', 'Circularity (a.u.)', 
                         'Signal (binary)', 'Fn. stain intensity (a.u.)', 'Fn. stain regions (n)']]
 sns.pairplot(df_all_subset)
 plt.savefig(dir_name + '_pairplot.png', dpi=300)
-plt.clf()
+plt.close()
 df_all_subset_noint = df_all[['Image', u'Area (\u03bcm\u00b2)', 'Circularity (a.u.)', 'Texture (a.u.)']]
 sns.pairplot(df_all_subset_noint)
 plt.savefig(dir_name + '_pairplot_no-int.png', dpi=300)
-plt.clf()
+plt.close()
 
 
 # One color per image
 sns.pairplot(df_all_subset, hue='Image')
 plt.savefig(dir_name + '_multicolor_pairplot.png', dpi=300)
-plt.clf()
+plt.close()
 sns.pairplot(df_all_subset_noint, hue='Image')
 plt.savefig(dir_name + '_multicolor_pairplot_no-int.png', dpi=300)
-plt.clf()
+plt.close()
 
 # After all images have been analyzed, write additional data sheets
 df_all.to_excel(writer, sheet_name='All data points', index=False)# All data points
 
 # Update summary sheet with summary of all images
-dict_df_final = descriptive_statistics(df_all)
+dict_df_final = descriptive_statistics(df_all, total_area)
 dict_df_final.insert(0, 'Image', 'All images')
 df_summary = df_summary.append(dict_df_final, ignore_index=True)
 df_summary.to_excel(writer, sheet_name='Descriptive statistics', index=False)
