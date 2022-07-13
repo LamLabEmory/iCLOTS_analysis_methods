@@ -1,7 +1,7 @@
 """iCLOTS is a free software created for the analysis of common hematology workflow image data
 
 Author: Meredith Fay, Lam Lab, Georgia Institute of Technology and Emory University
-Last updated: 2022-06-02
+Last updated: 2022-07-13
 This script corresponds to tools available in version 1.0b1, more recent implementations of tools
 may be available within the iCLOTS software and in source code at github.com/iCLOTS
 
@@ -16,7 +16,7 @@ Input files:
 --Script is designed to work a directory of videomicroscopy files (.avi)
 ----If your data is saved as a series of frames, please see the suite of video editing tools to convert to .avi
 Input parameters:
---umpix: The ratio of microns (1e-6 m) to pixels for the image
+--umpix: The ratio of microns (1e-6 m) to pixels for the videos
 ----Use umpix = 1 for no conversion
 --fps: Frames per second, the rate of imaging
 ----Note that FPS values pulled directly from videos can be inaccurate, especially if the video
@@ -30,17 +30,17 @@ Output files
 
 --A corresponding .xlsx sheet containing:
 ----sDI, area, summed cell fluorescence intensity
-------For each cell - one sheet/image
+------For each cell - one sheet/video
 ------For all cells - one sheet (this combined sheet is best for analyzing replicates)
 ----Descriptive statistics (min, mean, max, standard deviation for all metrics)
-------For each image and for all images combined
+------For each video and for all videos combined
 ----Parameters used and time/date analysis was performed, for reference
 
 --Pairplot
 ----Three types:
-------For each image
-------For all images, combined, one color represents all
-------For all images, combined, each color represents a different image
+------For each video
+------For all videos, combined, one color represents all
+------For all videos, combined, each color represents a different video
 
 Some tips from the iCLOTS team:
 
@@ -73,9 +73,9 @@ Choosing parameters:
 ---unless data is particularly noisy or there's a large amount of debris
 
 Output files:
---Analysis files are named after the folder containing all images (.xlsx) or image names (.png)
+--Analysis files are named after the folder containing all videos (.xlsx) or video names (.png)
 ----Avoid spaces, punctuation, etc. within file names
---.xlsx and pairplot data includes a sheet/graph with all images combined
+--.xlsx and pairplot data includes a sheet/graph with all videos combined
 ----Only use this when analyzing replicates of the same sample
 
 """
@@ -116,7 +116,7 @@ dirpath = filedialog.askdirectory()
 # Create a directory for saved results including time at which operation was performed
 now = datetime.datetime.now()
 # Create strings to indicate operations performed
-output_folder = dirpath + '/Analysis, ' + now.strftime("%m:%d:%Y, %H.%M.%S")
+output_folder = os.path.join(dirpath, 'Analysis, ' + now.strftime("%m:%d:%Y, %H.%M.%S"))
 os.mkdir(output_folder)
 os.chdir(output_folder)
 
@@ -298,12 +298,12 @@ for video in video_list:
             df_video.to_excel(writer, sheet_name = filename + ', all', index=False)  # RDI
             t_sdi.to_excel(writer, sheet_name= filename +', trackpy', index=False)  # Trackpy outputs
 
-            # Add descriptive statistics for image to summary sheet
-            df_image = descriptive_statistics(df_video)
-            df_image.insert(0, 'Video', filename)
-            df_summary = df_summary.append(df_image, ignore_index=True)
+            # Add descriptive statistics for video to summary sheet
+            df_file = descriptive_statistics(df_video)
+            df_file.insert(0, 'Video', filename)
+            df_summary = df_summary.append(df_file, ignore_index=True)
 
-            # Add individual image dataframe to df_all
+            # Add individual video dataframe to df_all
             df_video.insert(0, 'Video', filename)
             df_all = df_all.append(df_video, ignore_index=True)
 
@@ -311,7 +311,7 @@ for video in video_list:
             df_subset = df_video[['sDI (\u03bcm/s)', 'Area (pix)', 'Fl. int. (a.u.)']]
             sns.pairplot(df_subset)
             plt.savefig(filename + '_pairplot.png', dpi=300)
-            plt.clf()
+            plt.close()
 
             # If user would like graphical data and frames labeled with particle numbers
             # Computationally expensive but useful, so recommended
@@ -351,19 +351,19 @@ os.chdir(output_folder)  # Return to original analysis folder
 df_all_subset = df_all[['Video', 'sDI (\u03bcm/s)', 'Area (pix)', 'Fl. int. (a.u.)']]
 sns.pairplot(df_all_subset)
 plt.savefig(dir_name + '_pairplot.png', dpi=300)
-plt.clf()
+plt.close()
 
-# One color per image
+# One color per video
 sns.pairplot(df_all_subset, hue='Video')
 plt.savefig(dir_name + '_multicolor_pairplot.png', dpi=300)
-plt.clf()
+plt.close()
 
-# After all images have been analyzed, write additional data sheets
+# After all videos have been analyzed, write additional data sheets
 df_all.to_excel(writer, sheet_name='All data points', index=False)# All data points
 
-# Update summary sheet with summary of all images
+# Update summary sheet with summary of all videos
 dict_df_final = descriptive_statistics(df_all)
-dict_df_final.insert(0, 'Video', 'All images')
+dict_df_final.insert(0, 'Video', 'All videos')
 df_summary = df_summary.append(dict_df_final, ignore_index=True)
 df_summary.to_excel(writer, sheet_name='Descriptive statistics', index=False)
 
