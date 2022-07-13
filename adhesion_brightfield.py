@@ -1,7 +1,7 @@
 """iCLOTS is a free software created for the analysis of common hematology workflow image data
 
 Author: Meredith Fay, Lam Lab, Georgia Institute of Technology and Emory University
-Last updated: 2022-06-02
+Last updated: 2022-07-12
 This script corresponds to tools available in version 1.0b1, more recent implementations of tools
 may be available within the iCLOTS software and in source code at github.com/iCLOTS
 
