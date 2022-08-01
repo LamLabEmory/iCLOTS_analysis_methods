@@ -33,5 +33,8 @@ Outputs typically include:
 - Pairplot graphical data for each file, all files combined, and all files combined with each file a different color.
 - All outputs are stored in an "Analysis" folder created within the original directory.
 
+## Test data
+A subset of data presented in the iCLOTS manuscript is included for testing purposes. We are happy to share complete datasets and/or detailed protocols for obtaining these datasets, please reach out.
+
 ## Help and contributing
 Contributions are always welcome! Submit a pull request or contact the Lam lab coding team directly at lamlabcomputational@gmail.com. Please also feel free to reach out via email for assistance. Sample data and/or all data from the iCLOTS manuscript available upon request. Microfluidic mask designs available upon request. You can also find us at www.iCLOTS.org
