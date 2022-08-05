@@ -8,9 +8,13 @@ Each script has information about inputs, parameters, and outputs and a "tips" s
 ## Scripts included in repository
 - adhesion_brightfield.py: calculate morphological metrics describing individual cells within brightfield microscopy images
 - adhesion_fluor.py: calculate morphological and functional metrics describing individual cells within fluoresence microscopy images
+- adhesion_filopodia.py: a specialized version of the fluoresence microscopy adhesion application designed to count filopodia of cells
 - adhesion_video.py: calculate morphological metrics and transit time values describing individual cells as they transiently adhere to some surface while under flow
-- deformability_brightfield.py: calculate measures of mechanical properties of individual cells within brightfield microscopy data taken from experiments performed with the "biophysical flow cytometer" device
-- deformability_fluor.py: calculate measures of mechanical properties of individual cells within fluoresence microscopy data taken from experiments performed with the "biophysical flow cytometer" device
+- sct_brightfield.py: single cell tracking application to quantify morphological characteristics and velocity of individual cell(s) traveling in any direction(s) within brightfield videomicroscopy
+- sct_fluor.py: single cell tracking application to quantify morphological characteristics, summed fluoresence intensity, and velocity of individual cell(s) traveling in any direction(s) within fluoresence videomicroscopy
+- deformability_brightfield.py: a specialized version of the single cell tracking application to be used to calculate measures of mechanical properties of individual cells within brightfield microscopy data taken from experiments performed with the "biophysical flow cytometer" device, may also be used for more generalized channel flow x-direction tracking
+- deformability_fluor.py: a specialized version of the single cell tracking application to be used to calculate measures of mechanical properties of individual cells within fluoresence microscopy data taken from experiments performed with the "biophysical flow cytometer" device, may also be used for more generalized channel flow x-direction tracking
+- velocity.py: application designed to track velocity of a cell suspension as a function of time, creates a velocity flow profile of a video clip from all calculated displacements
 
 
 ## Inputs, outputs, methods
