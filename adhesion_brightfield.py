@@ -5,101 +5,91 @@ Last updated: 2022-07-12
 This script corresponds to tools available in version 1.0b1, more recent implementations of tools
 may be available within the iCLOTS software and in source code at github.com/iCLOTS
 
-Script that analyzes brightfield videomicroscpy of cells transiting
-the biophysical flow cytometer device, initial description of assay available at:
-https://pubmed.ncbi.nlm.nih.gov/18584080/
+Script that analyzes static, brightfield images of cells (platelets, RBCs, or WBCs)
+adhered to some surface
+May also be suitable for preliminary digital pathology approaches
 
 Script relies heavily on Trackpy python library, documentation available at:
 http://soft-matter.github.io/trackpy/v0.5.0/
 
 Input files:
---Script is designed to work a directory of videomicroscopy files (.avi)
-----If your data is saved as a series of frames, please see the suite of video editing tools to convert to .avi
+--Script is designed to work with a folder of image files (.jpg, .png, and/or .tif)
+----The same input parameters are applied to each image
 Input parameters:
---umpix: The ratio of microns (1e-6 m) to pixels for the video
+--umpix: The ratio of microns (1e-6 m) to pixels for the image
 ----Use umpix = 1 for no conversion
---fps: Frames per second, the rate of imaging
-----Note that FPS values pulled directly from videos can be inaccurate, especially if the video
------has been resized or edited in any way
---max_diameter: The maximum diameter of the tracked cells, MUST be an odd integer
---min_mass: The minimum intensity of a tracked cell, should be roughly 255*area
---labelimg: Boolean variable (True or False) indicating if you'd like labeled image data
+--max_diameter: Maximum diameter of a cell to be considered, MUST be an odd integer
+--min_mass: Minimum summed intensity of the cell
+--invert: Binary value
+----True: searching for dark features on a light background (most appropriate for brightfield)
+----False: searching for light features on a dark background (may be appropriate for WBCs)
 
 Output files
---If labelimg is true, each frame of the provided video with each detected cell labeled with an index
+--Each original image with each detected cell labeled with an index
 
 --A corresponding .xlsx sheet containing:
-----sDI, area
-------For each cell - one sheet/video
-------For all cells - one sheet (this combined sheet is best for analyzing replicates)
-----Descriptive statistics (min, mean, max, standard deviation for all metrics)
-------For each video and for all videos combined
+----Mass, area, and circularity for each cell - one sheet/image
+----Mass, area, and circularity for all cells - one sheet (this combined sheet is best for analyzing replicates)
+----Descriptive statistics (min, mean, max, standard deviation for area and circularity)
+------For each image and for all images combined
+------Descriptive statistics sheet also includes a density measurement (n cells/mm^2)
 ----Parameters used and time/date analysis was performed, for reference
 
---Pairplot
-----Three types:
-------For each video
-------For all videos, combined, one color represents all
-------For all videos, combined, each color represents a different video
+--Pairplot including area and circularity metrics
+----For each image
+----For all images, combined, one color represents all
+----For all images, combined, each color represents a different image
 
 Some tips from the iCLOTS team:
 
 Computational and experimental methods:
---Choose the height of your biophysical flow cytometer mask carefully
-----Cells must necessarily deform, but they cannot obstruct
-------Try ~2 um tall for RBCs, ~12-14 um tall for WBCs (channel width ~6 um)
-----WBCs can be challenging as they are "stickier"
-------Be sure to coat the channel with a bovine serum albumin solution to prevent non-specific binding
-----For best results, do not reuse devices for multiple experimental runs
 --Trackpy searches for particles represented by image regions with Gaussian-like distributions
 ---of pixel brightness
---Analysis methods cannot distinguish between cells transiting the channel together, in contact
-----If cells are significantly contacting, repeat experiment with a lower cell concentration
---If the analysis is taking an unacceptably long time, you can resize videos to be smaller
-----This may cause you to miss the smallest cells - if size is important, we suggest waiting it out
+----Cells with an especially heterogenous appearance, such as bi-concave RBCs or actived WBCs, may
+-----be hard to detect. While count will be accurate, take care in interpreting area or circularity
+--Analysis methods cannot distinguish between overlapping cells
+----If cells are significantly overlapping, repeat experiment with a lower cell concentration
+--Owing to the heterogenous appearance of blood cell types, brightfield analysis is always challenging
+----Consider using a fluorescent membrane stain coupled with our fluorescent adhesion applications
+-----if this does not conflict with your experimental goals, especially for WBCs/neutrophils
 
 Choosing parameters:
 --Be sure to use microns-to-pixel ratio, not pixel-to-micron ratio
 --Err on the high side of max_diameter and low side of min_mass parameters
 ---unless data is particularly noisy or there's a large amount of debris
+----By sorting in excel, you can verify that small/large objects are/are not cells
 
 Output files:
---Analysis files are named after the folder containing all videos (.xlsx) or video names (.png)
+--Analysis files are named after the folder containing all images (.xlsx) or image names (.png)
 ----Avoid spaces, punctuation, etc. within file names
---.xlsx and pairplot data includes a sheet/graph with all videos combined
+--.xlsx and pairplot data includes a sheet/graph with all images combined
 ----Only use this when analyzing replicates of the same sample
 
 """
 
-# Import libraries
-# File management
+# Import statements
+#    File management
 from tkinter import filedialog
 import os
 import glob
-import shutil
 import datetime
-# Number, file, and image management
+#   Computer vision, image analysis
 import cv2  # Computer vision/image processing
-import numpy as np  # For array management
-import pandas as pd  # For database management
-import pims
-# Particle tracking
-import trackpy as tp
-import warnings
-warnings.filterwarnings("ignore", module="trackpy")
-# Labeling and plotting results
-from PIL import Image, ImageDraw
+import trackpy as tp  # Particle tracking
+#   Number, file, and image management
+import pandas as pd  # For dataframe management
+#   Plotting results
 import matplotlib.pyplot as plt
-import seaborn as sns
-
+import seaborn as sns  # Pairplots
+from PIL import Image, ImageDraw  # For labeling images
+#   Misc.
+from math import pi
 
 # IMPORTANT: PARAMETERS TO EDIT
 umpix = 1  # 1 = no conversion
-fps = 25  # Frames per second rate of imaging
-max_diameter = 41  # Maximum diameter of tracked cells
-min_mass = 10000  # Minimum intensity of a tracked cell
-# If you'd like graphical data and the images labeled with the tracked cells, set as "True"
-labelimg = True  # Recommended
+max_diameter = 23  # Err on high side, MUST be an odd integer
+min_mass = 2200  # Err on low side
+invert=False  # True is dark on light, False is light on dark
 
 # Select directory of files
 dirpath = filedialog.askdirectory()
@@ -111,224 +101,130 @@ output_folder = os.path.join(dirpath, 'Analysis, ' + now.strftime("%m_%d_%Y, %H_
 os.mkdir(output_folder)
 os.chdir(output_folder)
 
-# Create a list of all video files
-video_list = glob.glob(dirpath + "/*.avi")
+# Create a list of all image files
+imglist_png = sorted(glob.glob(dirpath + "/*.png"))
+imglist_jpg = sorted(glob.glob(dirpath + "/*.jpg"))
+imglist_tif = sorted(glob.glob(dirpath + "/*.tif"))
+imglist = imglist_png + imglist_jpg + imglist_tif
 
 # Set up method to write final excel files
 dir_name = os.path.basename(dirpath)  # Also used for final graphs
 excel_name = dir_name + '_analysis.xlsx'
 writer = pd.ExcelWriter(excel_name, engine='openpyxl')
 
-# Create background subtractor for analysis
-fgbg = cv2.createBackgroundSubtractorMOG2(detectShadows=False)
+# Analyze images
+df_all = pd.DataFrame()  # To combine all data points into one sheet, useful for replicates
+df_summary = pd.DataFrame()  # For descriptive statistics
 
-def descriptive_statistics(df_input):
+def descriptive_statistics(df_input, img_size):
     """Function to calculate descriptive statistics for each population, represented as a dataframe"""
 
     dict = {'n cells': len(df_input),
-                  u'Min. sDI (\u03bcm/s)': df_input['sDI (\u03bcm/s)'].min(),
-                  u'Mean sDI (\u03bcm/s)': df_input['sDI (\u03bcm/s)'].mean(),
-                  u'Max. sDI (\u03bcm/s)': df_input['sDI (\u03bcm/s)'].max(),
-                  u'Stdev, sDI (\u03bcm/s)': df_input['sDI (\u03bcm/s)'].std(),
-                  u'Min. area (pix)': df_input['Area (pix)'].min(),
-                  u'Mean area (pix)': df_input['Area (pix)'].mean(),
-                  u'Max. area (pix)': df_input['Area (pix)'].max(),
-                  u'Stdev, area (pix)': df_input['Area (pix)'].std()
+                  u'Min. area (\u03bcm\u00b2)': df_input[u'Area (\u03bcm\u00b2)'].min(),
+                  u'Mean area (\u03bcm\u00b2)': df_input[u'Area (\u03bcm\u00b2)'].mean(),
+                  u'Max. area (\u03bcm\u00b2)': df_input[u'Area (\u03bcm\u00b2)'].max(),
+                  u'Stdev, area (\u03bcm\u00b2)': df_input[u'Area (\u03bcm\u00b2)'].std(),
+                  'Min. area (pix)': df_input['Area (pix)'].min(),
+                  'Mean area (pix)': df_input['Area (pix)'].mean(),
+                  'Max. area (pix)': df_input['Area (pix)'].max(),
+                  'Stdev, area (pix)': df_input['Area (pix)'].std(),
+                  'Min. circularity (a.u.)': df_input['Circularity (a.u.)'].min(),
+                  'Mean circularity (a.u.)': df_input['Circularity (a.u.)'].mean(),
+                  'Max. circularity (a.u.)': df_input['Circularity (a.u.)'].max(),
+                  'Stdev, circularity (a.u.)': df_input['Circularity (a.u.)'].std(),
+                  'Field of view (mm\u00b2)': img_size,
+                  'Cell density (n/mm\u00b2)': len(df_input)/img_size
                   }
     dict_df = pd.DataFrame(dict, index=[0])
 
     return dict_df
 
-# Set up combined and summary dataframes
-df_all = pd.DataFrame()
-df_summary = pd.DataFrame()
+# For each image
+total_area = 0  # For calculating final density measurement
+for imgname in imglist:
 
-# For each video
-for video in video_list:
+    # Read image
+    filename = os.path.basename(imgname).split(".")[0]  # Name of individual file
+    img_color = cv2.imread(imgname)  # Image for labeling
+    img = cv2.imread(imgname, 0)  # Image for analysis, 0 flag denotes grayscale
+    img_size = img.size * umpix * umpix / 1E6  # Convert area of image to mm2
+    total_area += img_size  # Record total area of all images for final density calculation
 
-    filename = os.path.basename(video).split(".")[0]  # Name of individual file
-    os.chdir(output_folder)  # Return to original analysis folder
+    # Locate particles (ideally, cells) using Trackpy
+    # See walkthrough: http://soft-matter.github.io/trackpy/dev/tutorial/walkthrough.html
+    f = tp.locate(img, max_diameter, minmass=min_mass, invert=invert)
 
-    # Defining a function to grayscale the image
-    @pims.pipeline
-    def gray(image):
-        return image[:, :, 1]
+    # Add index to resultant dataframe
+    index = range(len(f))
+    f.insert(0, 'Index', index)
 
-    # Create a frames object using pims
-    frames = gray(pims.PyAVReaderTimed(video))
-    frame_count = len(frames)
+    # Take most useful subset
+    f = f[['Index', 'x', 'y', 'mass', 'size', 'ecc']]
 
-    # Choose ROI from last frame (often initial frames have changes in illumination)
-    fromCenter = False  # Set up to choose as a drag-able rectangle
-    r = cv2.selectROI("Image", frames[-1], fromCenter)  # Choose ROI
-    ROI_x = int(r[0])  # Take result of selectROI and place into a variable
-    ROI_y = int(r[1])  # " "
-    ROI_w = int(r[2])  # " "
-    ROI_h = int(r[3])  # " "
+    # Calculate additional metrics
+    f['Area (pix)'] = f['size'] * f['size'] * pi  # pi*r^2
+    f[u'Area (\u03bcm\u00b2)'] = f['Area (pix)'] * umpix * umpix
 
-    ROI_w_um = ROI_w * umpix  # Width converted to microns
+    # Rename columns
+    f = f.rename(columns={'size': 'Radius (pix)',
+                          'ecc': 'Circularity (a.u.)',
+                          'mass': 'Mass (a.u.)'
+                          })
 
-    # Create a small kernel for morphological operations
-    kernel = np.ones((5, 5), np.uint8)
+    # Label image
+    PILimg = Image.fromarray(img_color)  # Pillow library prepares image for drawing
+    drawimg = ImageDraw.Draw(PILimg)
+    for i in range(len(f)):
+        drawimg.text((f['x'].iloc[i], f['y'].iloc[i]), str(i), fill="#ff0000")
+    PILimg.save(filename + '_labeled.png')
 
-    # Create a list of frames, cropped with background removed
-    bg_frames = []
-    for i in range(frame_count):
-        frame = fgbg.apply(frames[i])  # Apply background removal
-        closing = cv2.morphologyEx(frame, cv2.MORPH_CLOSE, kernel)  # Morphological closing operation
-        cropped = closing[ROI_y: (ROI_y + ROI_h), ROI_x: (ROI_x + ROI_w)]  # Crop
-        bg_frames.append(cropped.copy())
-
-    # Begin trackpy tracking analysis
-    tp.quiet()
-    f = tp.batch(bg_frames[:frame_count], max_diameter, minmass=min_mass, invert=False); # Detect particles/cells
-    # Link particles, cells into dataframe format
-    # Search range criteria: must travel no further than 1/3 the channel length in one frame
-    # Memory here signifies a particle/cell cannot "disappear" for more than one frame
-    tr = tp.link_df(f, search_range=ROI_w/3, memory=1, adaptive_stop=1, adaptive_step=0.95)
-    # Filter stubs criteria requires a particle/cell to be present for at least three frames
-    t_final = tp.filter_stubs(tr, 3)
-
-    # Series of vectors for final results dataframe
-    p_i = []  # Particle index
-    f_start = []  # Start frame, frame where cell first detected
-    f_end = []  # End frame, frame where cell last detected
-    dist = []  # Distance traveled
-    time = []  # Time for travel
-    sizes = []  # Cell size
-    t_sdi = pd.DataFrame()  # Create dataframe
-    # For each particle, calculate RDI and save data for results dataframe:
-    for p in range(t_final['particle'].iloc[-1]):
-        df_p = tr[tr['particle'] == p]  # Region of trackpy dataframe corresponding to individual particle index
-        x_0 = df_p['x'].iloc[0]  # First x-position
-        x_n = df_p['x'].iloc[-1]  # Last x-position
-        f_0 = df_p['frame'].iloc[0]  # First frame number
-        f_n = df_p['frame'].iloc[-1]  # Last frame number
-        s = df_p['mass'].mean() / 255  # Area of cell (pixels)
-        d = (x_n - x_0) * umpix  # Distance (microns)
-        t = (f_n - f_0) / fps  # Time (seconds)
-        # Criteria to save cells as a valid data point:
-        # Must travel no less than 1/3 the length of channel
-        # Must travel no further than length of channel
-        if d < ROI_w_um and d > ROI_w_um / 3:
-            t_sdi = t_sdi.append(df_p, ignore_index=True)  # Save trackpy metrics
-            # Append data for particle/cell
-            p_i.append(p)
-            f_start.append(f_0)
-            f_end.append(f_n)
-            dist.append(d)
-            time.append(t)
-            sizes.append(s)  # Background subtractor changes size of cell, size is a relative measurement
-
-    # Calculate sDI by dividing distance by time (um/sec)
-    sdi = []
-    sdi = np.asarray([u / v for u, v in zip(dist, time)])
-
-    # Organize time, location, and RDI data in a list format
-    df_video = pd.DataFrame(
-        {'Particle': p_i,
-         'Start frame': f_start,
-         'End frame': f_end,
-         'Transit time (s)': time,
-         'Distance traveled (\u03bcm)': dist,
-         'sDI (\u03bcm/s)': sdi,
-         'Area (pix)': sizes
-        })
-
-    # Renumber particles 0 to n
-    df_video['Particle'] = np.arange(len(df_video))
-    uniqvals = t_sdi['particle'].unique()
-    newvals = np.arange(len(uniqvals))
-    for val in newvals:
-        uniqval = uniqvals[val]
-        t_sdi['particle'] = t_sdi['particle'].replace(uniqval, val)
-
-    # Final data to excel
-    # Filename cropped to prevent excel errors caused by a sheet name over 30 characters
-    if len(filename) > 29:
-        filename = filename[:29]
-    df_video.to_excel(writer, sheet_name = filename + ', all', index=False)  # RDI
-    t_sdi.to_excel(writer, sheet_name= filename +', trackpy', index=False)  # Trackpy outputs
-
-    # Add descriptive statistics for video to summary sheet
-    df_file = descriptive_statistics(df_video)
-    df_file.insert(0, 'Video', filename)
-    df_summary = df_summary.append(df_file, ignore_index=True)
-
-    # Add individual video dataframe to df_all
-    df_video.insert(0, 'Video', filename)
-    df_all = df_all.append(df_video, ignore_index=True)
-
-    # Pairplot
-    df_subset = df_video[['sDI (\u03bcm/s)', 'Area (pix)']]
-    sns.pairplot(df_subset)
+    # Create pairplot
+    f_subset = f[[u'Area (\u03bcm\u00b2)', 'Circularity (a.u.)']]
+    sns.pairplot(f_subset)
     plt.savefig(filename + '_pairplot.png', dpi=300)
     plt.close()
 
-    # If user would like graphical data and frames labeled with particle numbers
-    # Computationally expensive but useful, so recommended
-    if labelimg is True:
-        # Create a directory for that image
-        dir_folder = output_folder + '/' + filename
-        if os.path.exists(dir_folder):
-            shutil.rmtree(dir_folder)  # Delete if already exists, prevents error
-        os.makedirs(dir_folder)
-        os.chdir(dir_folder)
+    # Save individual image dataframe to .xlsx file
+    f.to_excel(writer, sheet_name=filename[:30], index=False)  # Filename cropped to prevent excel error
 
-        # Read video as an OpenCV video object
-        cap = cv2.VideoCapture(video)
-        # Label
-        success, image = cap.read()
-        count = 1
-        while success:
-            # New filename: original, frame, frame number
-            image_name = filename + '_frame_' + str(count).zfill(5)
-            success, image = cap.read()
-            if image is not None:
-                f = t_sdi[t_sdi['frame'] == count]
-                # Set up image to label, including cropping
-                PILimg = Image.fromarray(image[ROI_y: (ROI_y + ROI_h), ROI_x: (ROI_x + ROI_w)])
-                drawimg = ImageDraw.Draw(PILimg)  # " "
-                for i in range(len(f)):
-                    drawimg.text((f['x'].iloc[i], f['y'].iloc[i]), str(f['particle'].iloc[i]),
-                                 fill="#ff0000")  # Label
-                PILimg.save(image_name + "_labeled.png")  # Save image
-            count += 1
+    # Add descriptive statistics for image to summary sheet
+    df_image = descriptive_statistics(f, img_size)
+    df_image.insert(0, 'Image', filename)
+    df_summary = df_summary.append(df_image, ignore_index=True)
 
-os.chdir(output_folder)  # Return to original analysis folder
+    # Add individual image dataframe to df_all
+    f.insert(0, 'Image', filename)
+    df_all = df_all.append(f, ignore_index=True)
 
-# Save and create summary excel sheets and pairplots
-# Create pairplots (with and without functional stain intensity data)
+# Create pairplots
 # One color
-df_all_subset = df_all[['Video', 'sDI (\u03bcm/s)', 'Area (pix)']]
+df_all_subset = df_all[['Image', u'Area (\u03bcm\u00b2)', 'Circularity (a.u.)']]
 sns.pairplot(df_all_subset)
-plt.savefig(dir_name + '_pairplot.png', dpi=300)
+plt.savefig(dir_name + '_singlecolor_pairplot.png', dpi=300)
 plt.close()
-
-# One color per video
-sns.pairplot(df_all_subset, hue='Video')
+# One color per image
+sns.pairplot(df_all_subset, hue='Image')
 plt.savefig(dir_name + '_multicolor_pairplot.png', dpi=300)
 plt.close()
 
-# After all videos have been analyzed, write additional data sheets
+# After all images have been analyzed, write additional data sheets
 df_all.to_excel(writer, sheet_name='All data points', index=False)# All data points
 
-# Update summary sheet with summary of all videos
-dict_df_final = descriptive_statistics(df_all)
-dict_df_final.insert(0, 'Video', 'All videos')
+# Update summary sheet with summary of all images
+dict_df_final = descriptive_statistics(df_all, total_area)
+dict_df_final.insert(0, 'Image', 'All images')
 df_summary = df_summary.append(dict_df_final, ignore_index=True)
 df_summary.to_excel(writer, sheet_name='Descriptive statistics', index=False)
 
 # Save parameters
 param_df = pd.DataFrame({u'Ratio, \u03bcm-to-pixels': umpix,
-                         'FPS': fps,
-                         'Max. diameter': max_diameter,
-                         'Min. intensity': min_mass,
-                         'Label image': labelimg,
+                         'Maximum cell diameter': max_diameter,
+                         'Minimum mass': min_mass,
+                         'Invert': str(invert),
                          'Analysis date': now.strftime("%D"),
                          'Analysis time': now.strftime("%H:%M:%S")}, index=[1])
 param_df.to_excel(writer, sheet_name='Parameters used', index=False)
 
-# Save and close excel file writer
+# Finish code
 writer.save()
 writer.close()

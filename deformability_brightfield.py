@@ -1,13 +1,15 @@
 """iCLOTS is a free software created for the analysis of common hematology workflow image data
-
 Author: Meredith Fay, Lam Lab, Georgia Institute of Technology and Emory University
-Last updated: 2022-07-13
-This script corresponds to tools available in version 1.0b1, more recent implementations of tools
-may be available within the iCLOTS software and in source code at github.com/iCLOTS
+Last updated: 2022-08-01
 
 Script that analyzes brightfield videomicroscpy of cells transiting
 the biophysical flow cytometer device, initial description of assay available at:
 https://pubmed.ncbi.nlm.nih.gov/18584080/
+
+Functionality as-is is not available within iCLOTS.
+A more generalized version of this script exists as sct_fluor (sct indicates "single cell tracking")
+This script tracks single cells through any microfluidic device.
+Single cell tracking applications are available in iCLOTS version 1.0b1
 
 Script relies heavily on Trackpy python library, documentation available at:
 http://soft-matter.github.io/trackpy/v0.5.0/
@@ -15,6 +17,7 @@ http://soft-matter.github.io/trackpy/v0.5.0/
 Input files:
 --Script is designed to work a directory of videomicroscopy files (.avi)
 ----If your data is saved as a series of frames, please see the suite of video editing tools to convert to .avi
+
 Input parameters:
 --umpix: The ratio of microns (1e-6 m) to pixels for the video
 ----Use umpix = 1 for no conversion
@@ -27,7 +30,6 @@ Input parameters:
 
 Output files
 --If labelimg is true, each frame of the provided video with each detected cell labeled with an index
-
 --A corresponding .xlsx sheet containing:
 ----sDI, area
 ------For each cell - one sheet/video
@@ -47,7 +49,7 @@ Some tips from the iCLOTS team:
 Computational and experimental methods:
 --Choose the height of your biophysical flow cytometer mask carefully
 ----Cells must necessarily deform, but they cannot obstruct
-------Try ~2 um tall for RBCs, ~12-14 um tall for WBCs (channel width ~6 um)
+------Try ~5 um tall for RBCs, ~12-14 um tall for WBCs (channel width ~6 um)
 ----WBCs can be challenging as they are "stickier"
 ------Be sure to coat the channel with a bovine serum albumin solution to prevent non-specific binding
 ----For best results, do not reuse devices for multiple experimental runs
@@ -62,12 +64,23 @@ Choosing parameters:
 --Be sure to use microns-to-pixel ratio, not pixel-to-micron ratio
 --Err on the high side of max_diameter and low side of min_mass parameters
 ---unless data is particularly noisy or there's a large amount of debris
+----By sorting in excel and comparing to labeled indices,
+-----you can verify that small/large objects are/are not cells
 
 Output files:
 --Analysis files are named after the folder containing all videos (.xlsx) or video names (.png)
 ----Avoid spaces, punctuation, etc. within file names
+--Library used to write excel sheets crops filenames for returned data sheets to avoid corrupted files
+----Make sure the first 15 characters of each video name are distinct
 --.xlsx and pairplot data includes a sheet/graph with all videos combined
 ----Only use this when analyzing replicates of the same sample
+
+Some quality metrics are set with the biophysical flow cytometer in mind
+--Minimum number of frames (3)
+--Minimum distance traveled (1/3 the width of the rOI)
+--Search range (1/3 the width of the ROI)
+--Distance is calculated as x-direction only
+You may want to edit these parameters for your specific usage
 
 """
 
@@ -205,7 +218,7 @@ for video in video_list:
         f_0 = df_p['frame'].iloc[0]  # First frame number
         f_n = df_p['frame'].iloc[-1]  # Last frame number
         s = df_p['mass'].mean() / 255  # Area of cell (pixels)
-        d = (x_n - x_0) * umpix  # Distance (microns)
+        d = (x_n - x_0) * umpix  # Distance (microns) - x direction only
         t = (f_n - f_0) / fps  # Time (seconds)
         # Criteria to save cells as a valid data point:
         # Must travel no less than 1/3 the length of channel

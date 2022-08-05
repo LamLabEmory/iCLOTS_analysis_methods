@@ -1,7 +1,7 @@
 """iCLOTS is a free software created for the analysis of common hematology workflow image data
-
 Author: Meredith Fay, Lam Lab, Georgia Institute of Technology and Emory University
-Last updated: 2022-07-13
+Last updated: 2022-07-28
+
 This script corresponds to tools available in version 1.0b1, more recent implementations of tools
 may be available within the iCLOTS software and in source code at github.com/iCLOTS
 
@@ -9,12 +9,19 @@ Script that analyzes fluorescent videomicroscpy of cells transiting
 the biophysical flow cytometer device, initial description of assay available at:
 https://pubmed.ncbi.nlm.nih.gov/18584080/
 
+Functionality as-is is not available within iCLOTS.
+A more generalized version of this script exists as sct_fluor (sct indicates "single cell tracking")
+This script tracks single cells through any microfluidic device
+Single cell tracking applications are available in iCLOTS version 1.0b1
+
+
 Script relies heavily on Trackpy python library, documentation available at:
 http://soft-matter.github.io/trackpy/v0.5.0/
 
 Input files:
 --Script is designed to work a directory of videomicroscopy files (.avi)
 ----If your data is saved as a series of frames, please see the suite of video editing tools to convert to .avi
+
 Input parameters:
 --umpix: The ratio of microns (1e-6 m) to pixels for the videos
 ----Use umpix = 1 for no conversion
@@ -22,12 +29,12 @@ Input parameters:
 ----Note that FPS values pulled directly from videos can be inaccurate, especially if the video
 -----has been resized or edited in any way
 --max_diameter: The maximum diameter of the tracked cells, MUST be an odd integer
---min_mass: The minimum intensity of a tracked cell
 --labelimg: Boolean variable (True or False) indicating if you'd like labeled image data
+
+--min_mass for trackpy algorithms is set artificially low such that all cells are counted, even if dim
 
 Output files
 --If labelimg is true, each original frame of the provided video with each detected cell labeled with an index
-
 --A corresponding .xlsx sheet containing:
 ----sDI, area, summed cell fluorescence intensity
 ------For each cell - one sheet/video
@@ -75,8 +82,17 @@ Choosing parameters:
 Output files:
 --Analysis files are named after the folder containing all videos (.xlsx) or video names (.png)
 ----Avoid spaces, punctuation, etc. within file names
+--Library used to write excel sheets crops filenames for returned data sheets to avoid corrupted files
+----Make sure the first 15 characters of each video name are distinct
 --.xlsx and pairplot data includes a sheet/graph with all videos combined
 ----Only use this when analyzing replicates of the same sample
+
+Some quality metrics are set with the biophysical flow cytometer in mind
+--Minimum number of frames (3)
+--Minimum distance traveled (1/3 the width of the rOI)
+--Search range (1/3 the width of the ROI)
+--Distance is calculated as x-direction only
+You may want to edit these parameters for your specific usage
 
 """
 
@@ -116,7 +132,7 @@ dirpath = filedialog.askdirectory()
 # Create a directory for saved results including time at which operation was performed
 now = datetime.datetime.now()
 # Create strings to indicate operations performed
-output_folder = os.path.join(dirpath, 'Analysis, ' + now.strftime("%m:%d:%Y, %H.%M.%S"))
+output_folder = os.path.join(dirpath, 'Analysis, ' + now.strftime("%m_%d_%Y, %H_%M_%S"))
 os.mkdir(output_folder)
 os.chdir(output_folder)
 
@@ -221,7 +237,7 @@ for video in video_list:
 
     # Begin trackpy tracking analysis
     tp.quiet()
-    f = tp.batch(crop_img[:n_frames], max_diameter, minmass=min_mass, invert=False); # Detect particles/cells
+    f = tp.batch(crop_img[:n_frames], max_diameter, minmass=1000, invert=False); # Detect particles/cells
     # If f exists, link particles, cells into dataframe format
     if len(f) > 0:
         # Search range criteria: must travel no further than 1/3 the channel length in one frame
@@ -251,7 +267,7 @@ for video in video_list:
                 f_n = df_p['frame'].iloc[-1]  # Last frame number
                 s = df_p['size'].mean() * df_p['size'].mean() * math.pi  # Area of cell (pi*r^2)
                 m = df_p['mass'].mean()  # Intensity
-                d = (x_n - x_0) * umpix  # Distance (microns)
+                d = (x_n - x_0) * umpix  # Distance (microns) - x-direction only
                 t = (f_n - f_0) / fps  # Time (seconds)
                 # Criteria to save cells as a valid data point:
                 # Must travel no less than 1/3 the length of channel
@@ -293,8 +309,8 @@ for video in video_list:
 
             # Final data to excel
             # Filename cropped to prevent excel errors caused by a sheet name over 30 characters
-            if len(filename) > 29:
-                filename = filename[:29]
+            if len(filename) > 14:
+                filename = filename[:14]
             df_video.to_excel(writer, sheet_name = filename + ', all', index=False)  # RDI
             t_sdi.to_excel(writer, sheet_name= filename +', trackpy', index=False)  # Trackpy outputs
 
@@ -371,7 +387,7 @@ df_summary.to_excel(writer, sheet_name='Descriptive statistics', index=False)
 param_df = pd.DataFrame({u'Ratio, \u03bcm-to-pixels': umpix,
                          'FPS': fps,
                          'Max. diameter': max_diameter,
-                         'Min. intensity': min_mass,
+                         'Min. intensity': 1000,
                          'Label image': labelimg,
                          'Analysis date': now.strftime("%D"),
                          'Analysis time': now.strftime("%H:%M:%S")}, index=[1])
@@ -380,5 +396,3 @@ param_df.to_excel(writer, sheet_name='Parameters used', index=False)
 # Save and close excel file writer
 writer.save()
 writer.close()
-
-

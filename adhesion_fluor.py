@@ -198,6 +198,7 @@ for imgname in imglist:
     # Read image
     filename = os.path.basename(imgname).split(".")[0]  # Name of individual file
     img = cv2.imread(imgname)  # Image for labeling
+
     img_size = img.size / 3 * umpix * umpix / 1E6  # Convert area of image (one layer) to mm2
     total_area += img_size  # Record total area of all images for final density calculation
 
