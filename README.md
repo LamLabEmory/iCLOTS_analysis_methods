@@ -44,4 +44,3 @@ Outputs typically include:
 
 ## Help and contributing
 Contributions are always welcome! Submit a pull request or contact me directly at meredith.e.fay@gmail.com. Sample data and/or all data from the iCLOTS manuscript available upon request. Microfluidic mask designs available upon request. You can also find me at www.iCLOTS.org.
-![image](https://github.com/LamLabEmory/iCLOTS_analysis_methods/assets/95768369/ce7e4daf-6e86-432e-ab3a-2a34e0752f03)
