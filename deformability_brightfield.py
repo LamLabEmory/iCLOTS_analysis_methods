@@ -107,12 +107,12 @@ import seaborn as sns
 
 
 # IMPORTANT: PARAMETERS TO EDIT
-umpix = 1  # 1 = no conversion
+umpix = 250/200  # 1 = no conversion
 fps = 25  # Frames per second rate of imaging
 max_diameter = 41  # Maximum diameter of tracked cells
 min_mass = 10000  # Minimum intensity of a tracked cell
 # If you'd like graphical data and the images labeled with the tracked cells, set as "True"
-labelimg = True  # Recommended
+labelimg = False  # Recommended
 
 # Select directory of files
 dirpath = filedialog.askdirectory()
@@ -162,6 +162,8 @@ for video in video_list:
     filename = os.path.basename(video).split(".")[0]  # Name of individual file
     os.chdir(output_folder)  # Return to original analysis folder
 
+    print(filename)
+
     # Defining a function to grayscale the image
     @pims.pipeline
     def gray(image):
@@ -171,14 +173,21 @@ for video in video_list:
     frames = gray(pims.PyAVReaderTimed(video))
     frame_count = len(frames)
 
-    # Choose ROI from last frame (often initial frames have changes in illumination)
-    fromCenter = False  # Set up to choose as a drag-able rectangle
-    r = cv2.selectROI("Image", frames[-1], fromCenter)  # Choose ROI
-    ROI_x = int(r[0])  # Take result of selectROI and place into a variable
-    ROI_y = int(r[1])  # " "
-    ROI_w = int(r[2])  # " "
-    ROI_h = int(r[3])  # " "
+    # # Choose ROI from last frame (often initial frames have changes in illumination)
+    # fromCenter = False  # Set up to choose as a drag-able rectangle
+    # r = cv2.selectROI("Image", frames[-1], fromCenter)  # Choose ROI
+    # ROI_x = int(r[0])  # Take result of selectROI and place into a variable
+    # ROI_y = int(r[1])  # " "
+    # ROI_w = int(r[2])  # " "
+    # ROI_h = int(r[3])  # " "
 
+
+    ROI_x = 0  # Take result of selectROI and place into a variable
+    ROI_y = 0  # " "
+    ROI_w = frames[0].shape[1]  # " "
+    ROI_h = frames[0].shape[0]  # " "
+
+    print(ROI_x, ROI_y, ROI_w, ROI_h)
     ROI_w_um = ROI_w * umpix  # Width converted to microns
 
     # Create a small kernel for morphological operations
@@ -201,6 +210,8 @@ for video in video_list:
     tr = tp.link_df(f, search_range=ROI_w/3, memory=1, adaptive_stop=1, adaptive_step=0.95)
     # Filter stubs criteria requires a particle/cell to be present for at least three frames
     t_final = tp.filter_stubs(tr, 3)
+
+    print(len(t_final))
 
     # Series of vectors for final results dataframe
     p_i = []  # Particle index
