@@ -176,7 +176,7 @@ for video in video_list:
     # Create a small kernel for morphological operations
     kernel = np.ones((5, 5), np.uint8)
 
-    # Create a list of frames, cropped with background removed
+    # Create a list of frames, cropped
     crop_frames = []
     for i in range(frame_count):
         img = frames[i]

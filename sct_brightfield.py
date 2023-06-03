@@ -6,8 +6,6 @@ This script corresponds to tools available in version 1.0b1, more recent impleme
 may be available within the iCLOTS software and in source code at github.com/iCLOTS
 
 Script that analyzes brightfield videomicroscpy of individual cells transiting some microfluidic device
-iCLOTS manuscript presents use case with the biophysical flow cytometer device,
-initial description of assay available at: https://pubmed.ncbi.nlm.nih.gov/18584080/
 
 Script relies heavily on Trackpy python library, documentation available at:
 http://soft-matter.github.io/trackpy/v0.5.0/

@@ -113,7 +113,8 @@ min_dist_st = 5
 block_size = 5
 feature_params = dict( maxCorners = max_corners,  # n best corners to track, more = more computationally expensive
                        qualityLevel = qual_level,  # parameter characterizing the minimal accepted quality of image corners
-                       minDistance = min_dist_st,  # minimum possible Euclidean distance between the returned corners (pix)
+                       minDistance = min_dist_st,  # minimum
+                       # possible Euclidean distance between the returned corners (pix)
                        blockSize = block_size)  # size of an average block for computing a derivative covariation matrix over each pixel neighborhood
 
 # Parameters for lucas kanade optical flow
@@ -199,13 +200,18 @@ for video in video_list:
 
     ret, first_frame = cap.read()
 
-    # Choose ROI from last frame (often initial frames have changes in illumination)
-    fromCenter = False  # Set up to choose as a drag-able rectangle
-    r = cv2.selectROI("Image", first_frame, fromCenter)  # Choose ROI
-    ROI_x = int(r[0])  # Take result of selectROI and place into a variable
-    ROI_y = int(r[1])  # " "
-    ROI_w = int(r[2])  # " "
-    ROI_h = int(r[3])  # " "
+    # # Choose ROI from last frame (often initial frames have changes in illumination)
+    # fromCenter = False  # Set up to choose as a drag-able rectangle
+    # # r = cv2.selectROI("Image", first_frame, fromCenter)  # Choose ROI
+    # ROI_x = int(r[0])  # Take result of selectROI and place into a variable
+    # ROI_y = int(r[1])  # " "
+    # ROI_w = int(r[2])  # " "
+    # ROI_h = int(r[3])  # " "
+
+    ROI_x = int(0)  # Take result of selectROI and place into a variable
+    ROI_y = int(0)  # " "
+    ROI_w = int(w)  # " "
+    ROI_h = int(h)  # " "
 
     init_frame = first_frame[ROI_y:(ROI_y + ROI_h), ROI_x:(ROI_x + ROI_w), :]  # Create cropped image
     init_gray = cv2.cvtColor(init_frame, cv2.COLOR_BGR2GRAY)
@@ -309,7 +315,7 @@ for video in video_list:
     fig = plt.figure()
     plt.scatter(data_all['Channel pos. (pix)'] * umpix, data_all['Velocity (\u03bcm/s)'], color='lightskyblue')
     plt.plot(bins_um[1:], profile, color='dodgerblue')
-    plt.xlabel('Channel position ((\u03bcm)')
+    plt.xlabel('Channel position (\u03bcm)')
     plt.ylabel('Velocity (\u03bcm/s)')
     plt.savefig(filename + '_profile.png', dpi=300)
     plt.close()
