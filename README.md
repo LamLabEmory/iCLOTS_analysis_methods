@@ -6,6 +6,9 @@ Methods rely on: Pandas, Numpy, OpenCV, skimage, Trackpy, seaborn, and more.
 Each script has information about inputs, parameters, and outputs and a "tips" section within the module docstrings. Briefly, users select a folder of .png, .jpg., .tif, and/or .avi files for analysis. Users edit indicated parameters, some image processing step is applied, metric calculations are made and all output files are returned in a new directory within the original.
 
 ## Scripts included in repository
+- accumulation_map.py: calculate occlusion and accumulation metrics for multiple blood components adhered to some device or surface over time, code adapts to an any-dimension microfluidic device
+- accumulation_microchannel.py: calculate occlusion and accumulation metrics for multiple blood components adhered to some device or surface over time, code adapts to a series of horizontally-oriented channels, spatial metrics are returned
+- accumulation_roi.py: calculate occlusion and accumulation metrics for multiple blood components adhered to some device or surface over time
 - adhesion_brightfield.py: calculate morphological metrics describing individual cells within brightfield microscopy images
 - adhesion_fluor.py: calculate morphological and functional metrics describing individual cells within fluoresence microscopy images
 - adhesion_filopodia.py: a specialized version of the fluoresence microscopy adhesion application designed to count filopodia of cells
@@ -15,7 +18,6 @@ Each script has information about inputs, parameters, and outputs and a "tips" s
 - deformability_brightfield.py: a specialized version of the single cell tracking application to be used to calculate measures of mechanical properties of individual cells within brightfield microscopy data taken from experiments performed with the "biophysical flow cytometer" device, may also be used for more generalized channel flow x-direction tracking
 - deformability_fluor.py: a specialized version of the single cell tracking application to be used to calculate measures of mechanical properties of individual cells within fluoresence microscopy data taken from experiments performed with the "biophysical flow cytometer" device, may also be used for more generalized channel flow x-direction tracking
 - velocity.py: application designed to track velocity of a cell suspension as a function of time, creates a velocity flow profile of a video clip from all calculated displacements
-
 
 ## Inputs, outputs, methods
 Users are guided to choose a directory of .png, .jpg, .tif, and/or .avi files using a file dialog window. File type depends on application. A separate suite of video processing tools in the video_processing repository can help format your data into the correct file type.
@@ -37,8 +39,9 @@ Outputs typically include:
 - Pairplot graphical data for each file, all files combined, and all files combined with each file a different color.
 - All outputs are stored in an "Analysis" folder created within the original directory.
 
-## Test data
-A subset of data presented in the iCLOTS manuscript is included for testing purposes. We are happy to share complete datasets and/or detailed protocols for obtaining these datasets, please reach out.
+## Machine learning Jupyter notebook included in repository
+- iCLOTS_ML_clustering.ipynb: machine learning interpretation for iCLOTS-generated data. Users select a folder containing one or more Excel files, select desired features, select desired number of clusters, and receive labeled outputs from a K-means clustering algorithm.
 
 ## Help and contributing
-Contributions are always welcome! Submit a pull request or contact the Lam lab coding team directly at lamlabcomputational@gmail.com. Please also feel free to reach out via email for assistance. Sample data and/or all data from the iCLOTS manuscript available upon request. Microfluidic mask designs available upon request. You can also find us at www.iCLOTS.org
+Contributions are always welcome! Submit a pull request or contact me directly at meredith.e.fay@gmail.com. Sample data and/or all data from the iCLOTS manuscript available upon request. Microfluidic mask designs available upon request. You can also find me at www.iCLOTS.org.
+![image](https://github.com/LamLabEmory/iCLOTS_analysis_methods/assets/95768369/ce7e4daf-6e86-432e-ab3a-2a34e0752f03)
