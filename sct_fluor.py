@@ -119,10 +119,11 @@ import seaborn as sns
 
 # IMPORTANT: PARAMETERS TO EDIT
 umpix = 1  # 1 = no conversion
-fps = 25  # Frames per second rate of imaging
-max_diameter = 41  # Maximum diameter of tracked cells
-search_range = 90  # The area (in pixels) to search for a feature in the subsequent frame
-min_dist = 10  # The minimum distance (pixels) a cell must travel to be considered a valid data point
+fps = 1  # Frames per second rate of imaging
+max_diameter = 21  # Maximum diameter of tracked cells
+search_range = 30  # The area (in pixels) to search for a feature in the subsequent frame
+min_dist = 1  # The minimum distance (pixels) a cell must travel to be considered a valid data point
+threshold = 40  # Threshold should a binary method be used (see comments)
 # If you'd like graphical data and the images labeled with the tracked cells, set as "True"
 labelimg = True  # Recommended
 
@@ -214,10 +215,12 @@ for video in video_list:
     map_scaled = map * 255 // map.max()  # Scale max. value to 255
     map_scaled_img = map_scaled.astype(np.uint8)  # Convert to uint8
 
+    # Apply a gaussian blur
+    blur = cv2.blur(map_scaled_img, (5, 5))
     # Apply a threshold
-    threshold = np.percentile(map_scaled_img, 70)  # Create a threshold by selecting signal above the 70th percentile
-    d_c_ret, img_for_roi = cv2.threshold(map_scaled_img, threshold, 255,
-                                    cv2.THRESH_BINARY)  # Apply binary threshold to create final map
+    # threshold = np.percentile(map_scaled_img, 70)  # Create a threshold by selecting signal above the 70th percentile
+    d_c_ret, img_for_roi = cv2.threshold(blur, threshold, 255,
+                                    cv2.THRESH_BINARY)  # Apply binary threshold to create final map, keep line 219 commented out to use input parameter
     # Something like an Otsu threshold won't work because most of the signal is very light
 
     # Choose ROI from last frame (often initial frames have changes in illumination)
@@ -235,9 +238,18 @@ for video in video_list:
 
     crop_img = []  # To save cropped frames
     for i in range(n_frames - 1):
-        scaled_img = frarray[:, :, i] / 255  # Convert to 0/1
-        frame = gray_frarray[:, :, i].astype(float)  # Original intensity values
-        img = frame * scaled_img  # Intensity only in regions where cell is detected
+        # # If you would like intensity of the shape preserved
+        # scaled_img = frarray[:, :, i] / 255  # Convert to 0/1
+        # frame = gray_frarray[:, :, i].astype(float)  # Original intensity values
+        # img = frame * scaled_img  # Intensity only in regions where cell is detected
+
+        # If you would like only velocity preserved (more accurate if velocity is only concerned)
+        # Apply a gaussian blur
+        blur = cv2.blur(frarray[:, :, i], (5, 5))
+        # Apply a threshold
+        # threshold = np.percentile(map_scaled_img, 70)  # Create a threshold by selecting signal above the 70th percentile
+        d_c_ret, img = cv2.threshold(blur, threshold, 255,
+                                             cv2.THRESH_BINARY)  # Apply binary threshold to create final map, keep line 219 commented out to use input parameter
 
         crop = img[ROI_y: (ROI_y + ROI_h), ROI_x: (ROI_x + ROI_w)]
 
@@ -250,7 +262,7 @@ for video in video_list:
     if len(f) > 0:
         # Search range criteria: must travel no further than 1/3 the channel length in one frame
         # Memory here signifies a particle/cell cannot "disappear" for more than one frame
-        tr = tp.link_df(f, search_range=search_range, memory=1, adaptive_stop=1, adaptive_step=0.95)
+        tr = tp.link_df(f, search_range=search_range, memory=3, adaptive_stop=1, adaptive_step=0.95)
         # Filter stubs criteria requires a particle/cell to be present for at least three frames
         t_final = tp.filter_stubs(tr, 3)
 
@@ -292,6 +304,9 @@ for video in video_list:
                     time.append(t)
                     sizes.append(s)  # Background subtractor changes size of cell, size is a relative measurement
                     fl_int.append(m)
+
+                # For individual particles, also calculate an instantaneous velocity and angle of movement for each between-frame distance
+
 
             # Calculate velocity by dividing distance by time (um/sec)
             velocity = []
