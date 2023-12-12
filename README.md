@@ -43,4 +43,4 @@ Outputs typically include:
 - iCLOTS_ML_clustering.ipynb: machine learning interpretation for iCLOTS-generated data. Users select a folder containing one or more Excel files, select desired features, select desired number of clusters, and receive labeled outputs from a K-means clustering algorithm.
 
 ## Help and contributing
-Contributions are always welcome! Submit a pull request or contact me directly at meredith.e.fay@gmail.com. Sample data and/or all data from the iCLOTS manuscript available upon request. Microfluidic mask designs available upon request. You can also find me at www.iCLOTS.org.
+Contributions are always welcome! Submit a pull request or contact me directly at meredith.fay@iclots.org. Sample data and/or all data from the iCLOTS manuscript available upon request. Microfluidic mask designs available upon request. You can also find me at www.iCLOTS.org.
